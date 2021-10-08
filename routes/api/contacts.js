@@ -1,7 +1,11 @@
 const express = require("express");
 const router = express.Router();
 
-const { postValidation, patchValidation } = require("./validation");
+const {
+  postValidation,
+  patchValidation,
+  statusValidation,
+} = require("./validation");
 
 const {
   listContacts,
@@ -9,6 +13,7 @@ const {
   removeContact,
   addContact,
   updateContact,
+  updateStatusContact,
 } = require("../../model");
 
 router.get("/", async (_req, res, next) => {
@@ -78,5 +83,23 @@ router.patch("/:contactId", patchValidation, async (req, res, next) => {
     next(error);
   }
 });
+
+router.patch(
+  "/:contactId/favorite",
+  statusValidation,
+  async (req, res, next) => {
+    try {
+      const contact = await updateStatusContact(req.params.contactId, req.body);
+
+      if (contact) {
+        return res.json({ status: "success", code: 200, data: { contact } });
+      }
+
+      return next();
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 module.exports = router;

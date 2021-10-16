@@ -50,4 +50,39 @@ const statusValidation = async (req, _res, next) => {
   }
 };
 
-module.exports = { postValidation, patchValidation, statusValidation };
+const userValidation = async (req, _res, next) => {
+  try {
+    const userSchema = Joi.object({
+      email: Joi.string().email().required(),
+      password: Joi.string().min(3).max(30).required(),
+    });
+
+    await userSchema.validateAsync(req.body);
+
+    return next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+const subscriptionValidation = async (req, _res, next) => {
+  try {
+    const subscriptionSchema = Joi.object({
+      subscription: Joi.string().valid("starter", "pro", "business").required(),
+    });
+
+    await subscriptionSchema.validateAsync(req.body);
+
+    return next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  postValidation,
+  patchValidation,
+  statusValidation,
+  userValidation,
+  subscriptionValidation,
+};

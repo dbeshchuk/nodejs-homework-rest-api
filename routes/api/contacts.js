@@ -14,21 +14,27 @@ const {
   addContact,
   updateContact,
   updateStatusContact,
-} = require("../../model");
+} = require("../../model/contacts/index");
 
-router.get("/", async (_req, res, next) => {
+const guard = require("../../helpers/guard");
+
+router.get("/", guard, async (req, res, next) => {
   try {
-    const contacts = await listContacts();
+    const userId = req.user._id;
 
-    return res.json({ status: "success", code: 200, data: { contacts } });
+    const data = await listContacts(userId, req.query);
+
+    return res.json({ status: "success", code: 200, data: { ...data } });
   } catch (error) {
     next(error);
   }
 });
 
-router.get("/:contactId", async (req, res, next) => {
+router.get("/:contactId", guard, async (req, res, next) => {
   try {
-    const contact = await getContactById(req.params.contactId);
+    const userId = req.user._id;
+
+    const contact = await getContactById(req.params.contactId, userId);
 
     if (contact) {
       return res.json({ status: "success", code: 200, data: { contact } });
@@ -40,9 +46,11 @@ router.get("/:contactId", async (req, res, next) => {
   }
 });
 
-router.post("/", postValidation, async (req, res, next) => {
+router.post("/", guard, postValidation, async (req, res, next) => {
   try {
-    const newContact = await addContact(req.body);
+    const userId = req.user._id;
+
+    const newContact = await addContact({ ...req.body, owner: userId });
 
     return res
       .status(201)
@@ -52,9 +60,11 @@ router.post("/", postValidation, async (req, res, next) => {
   }
 });
 
-router.delete("/:contactId", async (req, res, next) => {
+router.delete("/:contactId", guard, async (req, res, next) => {
   try {
-    const completed = await removeContact(req.params.contactId);
+    const userId = req.user._id;
+
+    const completed = await removeContact(req.params.contactId, userId);
 
     if (completed) {
       return res.json({
@@ -70,9 +80,15 @@ router.delete("/:contactId", async (req, res, next) => {
   }
 });
 
-router.patch("/:contactId", patchValidation, async (req, res, next) => {
+router.patch("/:contactId", guard, patchValidation, async (req, res, next) => {
   try {
-    const newContact = await updateContact(req.params.contactId, req.body);
+    const userId = req.user._id;
+
+    const newContact = await updateContact(
+      req.params.contactId,
+      req.body,
+      userId
+    );
 
     if (newContact) {
       return res.json({ status: "success", code: 200, data: { newContact } });
@@ -86,10 +102,17 @@ router.patch("/:contactId", patchValidation, async (req, res, next) => {
 
 router.patch(
   "/:contactId/favorite",
+  guard,
   statusValidation,
   async (req, res, next) => {
     try {
-      const contact = await updateStatusContact(req.params.contactId, req.body);
+      const userId = req.user._id;
+
+      const contact = await updateStatusContact(
+        req.params.contactId,
+        req.body,
+        userId
+      );
 
       if (contact) {
         return res.json({ status: "success", code: 200, data: { contact } });

@@ -1,7 +1,13 @@
 const mongoose = require("mongoose");
 require("dotenv").config();
 
-const uri = process.env.MONGO_URL;
+let uri;
+
+if (process.env.NODE_ENV == "test") {
+  uri = process.env.MONGO_TEST_URL;
+} else {
+  uri = process.env.MONGO_URL;
+}
 
 const db = mongoose.connect(uri, {
   useNewUrlParser: true,

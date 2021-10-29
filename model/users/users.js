@@ -1,5 +1,6 @@
 const { Schema, model } = require("mongoose");
 const gravatar = require("gravatar");
+const crypto = require("crypto");
 
 const bcrypt = require("bcryptjs");
 
@@ -30,6 +31,15 @@ const userSchema = new Schema(
       default: function () {
         return gravatar.url(this.email, { s: "250" }, true);
       },
+    },
+    verify: {
+      type: Boolean,
+      default: false,
+    },
+    verifyToken: {
+      type: String,
+      required: [true, "Verify token is required"],
+      default: crypto.randomUUID(),
     },
   },
   { versionKey: false, timestamps: true }

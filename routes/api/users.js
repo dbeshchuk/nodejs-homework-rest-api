@@ -6,10 +6,17 @@ const mkdirp = require("mkdirp");
 
 require("dotenv").config();
 
-const { userValidation, subscriptionValidation } = require("./validation");
+const {
+  userValidation,
+  subscriptionValidation,
+  emailValidation,
+} = require("./validation");
 
 const upload = require("../../helpers/uploads");
 const FileUpload = require("../../services/file-upload");
+
+const EmailService = require("../../services/email/service");
+const { CreateSenderNodemailer } = require("../../services/email/sender");
 
 const {
   findByEmail,
@@ -18,6 +25,8 @@ const {
   updateToken,
   updateAvatar,
   updateSubscription,
+  updateTokenVerify,
+  findUserByVerifyToken,
 } = require("../../model/users/index");
 
 const { HttpCode } = require("../../config/constants");
@@ -39,7 +48,18 @@ router.post("/signup", userValidation, async (req, res, next) => {
 
     const newUser = await create({ email, password });
 
-    // console.log(newUser.avatar);
+    const emailService = new EmailService(
+      "development",
+      new CreateSenderNodemailer()
+    );
+
+    const statusEmail = await emailService.sendVerifyEmail(
+      newUser.email,
+      newUser.name,
+      newUser.verifyToken
+    );
+
+    console.log(statusEmail);
 
     return res.status(HttpCode.CREATED).json({
       status: "success",
@@ -49,6 +69,7 @@ router.post("/signup", userValidation, async (req, res, next) => {
           email: newUser.email,
           subscription: newUser.subscription,
           avatar: newUser.avatarURL,
+          successEmail: statusEmail,
         },
       },
     });
@@ -65,7 +86,7 @@ router.post("/login", userValidation, async (req, res, next) => {
 
     const isValidPassword = await user?.isValidPassword(password);
 
-    if (!user || !isValidPassword) {
+    if (!user || !isValidPassword || !user?.verify) {
       return res.status(HttpCode.UNAUTHORIZED).json({
         status: "error",
         code: HttpCode.UNAUTHORIZED,
@@ -162,5 +183,66 @@ router.patch(
     });
   }
 );
+
+router.get("/verify/:verificationToken", async (req, res, next) => {
+  try {
+    const user = await findUserByVerifyToken(req.params.verificationToken);
+
+    console.log(req.params.verificationToken);
+
+    if (user) {
+      await updateTokenVerify(user._id, true, null);
+
+      return res.status(HttpCode.OK).json({
+        status: "success",
+        code: HttpCode.OK,
+        message: "Verification success",
+      });
+    }
+
+    return res.status(HttpCode.NOT_FOUND).json({
+      status: "error",
+      code: HttpCode.NOT_FOUND,
+      message: "User not found",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/verify", emailValidation, async (req, res, next) => {
+  try {
+    const user = await findByEmail(req.body.email);
+
+    if (user.verify) {
+      return res.status(HttpCode.BAD_REQUEST).json({
+        status: "error",
+        code: HttpCode.BAD_REQUEST,
+        message: "Verification has already been passed",
+      });
+    }
+
+    if (user) {
+      const emailService = new EmailService(
+        "development",
+        new CreateSenderNodemailer()
+      );
+
+      await emailService.sendVerifyEmail(
+        user.email,
+        user.name,
+        user.verifyToken
+      );
+    }
+
+    return res.status(HttpCode.OK).json({
+      status: "success",
+      code: HttpCode.OK,
+      message: "Verification email sent",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 module.exports = router;

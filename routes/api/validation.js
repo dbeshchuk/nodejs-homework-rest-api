@@ -79,10 +79,28 @@ const subscriptionValidation = async (req, _res, next) => {
   }
 };
 
+const emailValidation = async (req, _res, next) => {
+  try {
+    const emailSchema = Joi.object({
+      email: Joi.string()
+        .email()
+        .required()
+        .messages({ "any.required": "missing required field email" }),
+    });
+
+    await emailSchema.validateAsync(req.body);
+
+    return next();
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   postValidation,
   patchValidation,
   statusValidation,
   userValidation,
   subscriptionValidation,
+  emailValidation,
 };

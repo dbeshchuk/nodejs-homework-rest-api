@@ -7,7 +7,10 @@ class CreateSenderNodemailer {
       host: "smtp.meta.ua",
       port: 465,
       secure: true,
-      auth: { user: "dbeshchuk@meta.ua", pass: process.env.META_PASSPORT },
+      auth: {
+        user: process.env.META_EMAIL,
+        pass: process.env.META_PASSPORT,
+      },
     };
 
     const transporter = nodemailer.createTransport(config);
